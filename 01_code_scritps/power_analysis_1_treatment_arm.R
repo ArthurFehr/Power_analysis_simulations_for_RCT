@@ -44,7 +44,7 @@ power <- data.frame(
   power_effect3 = rep(NA, length(sample_sizes))
   )
 
-# colors for the graph (colors taken from ggsci Lancet pallete)
+# colors for the graph
 colors <- c('#BEBC73', '#95ADA5', '#CBD2BF')
 
 # ---- Function to plot the graphs ---- #
