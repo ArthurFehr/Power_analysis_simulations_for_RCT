@@ -12,6 +12,8 @@
 #install.packages("randomizr")
 library(randomizr)    # randomizr package for complete random assignment
 library(ggplot2)
+library(data.table)
+library(dplyr)
 
 ############################################
 #### Power Analysis for Multiple Treatments
@@ -22,7 +24,7 @@ rm(list=ls()) # clean environment
 # ----- Define parameters ----- #
 
 min_sample_size <- 100
-max_sample_size <- 1000
+max_sample_size <- 6000
 
 sample_sizes <- seq(from = min_sample_size,
                     to   = max_sample_size,
@@ -126,6 +128,10 @@ plot_data <- data.frame(
   sample_sizes,
   power
 )
+
+# Save plot_data so don't need to rerun simulations to create the data
+plot_data %>% 
+  fwrite('02_data/data_for_single_treatment_arm.csv')
 
 # Plot data
 plot <- plot_power_analysis(plot_data)
