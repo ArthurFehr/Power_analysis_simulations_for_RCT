@@ -13,7 +13,7 @@ For the treatment with a single treatment arm, we follow the steps:
 
 1. Define the sample sizes and the number of simulations to run for each treatment effect and each sample size 
 2. Define the hypothetical treatment effects (in our case, these will be the minimum detectable effects - MDEs) 
-3. Construct our simulated sample: \n
+3. Construct our simulated sample: 
   + Potential outcomes for not receiving the treatment (Y0) are taken from a normal distribution with mean zero and standard deviation one (this makes sense for this experiment, given that outcomes are standardized this way) 
   + Potential outcomes for receiving the treatment (Y1) are Y0 + treatment effect
   + Generate a random vector of treatment assignments $T$, used to constructed the observed outcomes for each observation in the sample $Y = T*Y1 + (1 - T)*Y0$
