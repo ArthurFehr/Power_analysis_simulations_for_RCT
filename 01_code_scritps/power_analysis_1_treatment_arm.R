@@ -2,50 +2,52 @@
 # Code to generate power analysis via simulations for the PIM program
 # Only one treatment arm considered but with 3 different treatment effects
 
+rm(list=ls()) # clean environment
+
 ###############
 #### Setup ####
 ###############
 
-# Set wd where to save graphs
-# setwd('C:\\Users\\arthf\\Mestrado_Economia\\Clear\\PIM Program')
-
-#install.packages("randomizr")
 library(randomizr)    # randomizr package for complete random assignment
 library(ggplot2)
 library(data.table)
 library(dplyr)
 
+# Set base path to save graphs
+base_path <- 'C:\\Users\\arthf\\Mestrado_Economia\\Clear\\PIM Program'
+
 ############################################
 #### Power Analysis for Multiple Treatments
 ############################################
-
-rm(list=ls()) # clean environment
 
 # ----- Define parameters ----- #
 
 min_sample_size <- 100
 max_sample_size <- 6000
+increment <- 200
 
-sample_sizes <- seq(from = min_sample_size,
-                    to   = max_sample_size,
-                    by   = 200)
-
-sims <- 500   # nº of simulations to run for each treatment effect and each sample size
+sims <- 100   # nº of simulations to run for each treatment effect and each sample size
 
 alpha <- 0.1  # one-tailed test at .05 level
 
 # treatment effects
 taus <- c(0.05, 0.10, 0.15) # these will be the minimum detectable effect (MDE) in our case
 
-# vectors to store power value for each sample size
-power <- data.frame(
-  power_effect1 = rep(NA, length(sample_sizes)),
-  power_effect2 = rep(NA, length(sample_sizes)),
-  power_effect3 = rep(NA, length(sample_sizes))
-  )
-
 # colors for the graph
 colors <- c('#BEBC73', '#95ADA5', '#CBD2BF')
+
+# ----- Implementation ----- #
+
+# Create sample sizes
+sample_sizes <- seq(from = min_sample_size,
+                    to   = max_sample_size,
+                    by   = increment)
+
+# vectors to store power values for each sample size
+power <- data.frame(matrix(NA, 
+                           nrow = length(sample_sizes),
+                           ncol = length(taus)))
+colnames(power) <- paste0('power_effect', seq(length(taus)))
 
 # ---- Function to plot the graphs ---- #
 
@@ -79,37 +81,53 @@ plot_power_analysis <- function(data) {
   
 }
 
+create_sample <- function(tau, prob_treatment = c(0.5, 0.5),
+                          sample_size = 100, mean = 0, sd = 1) {
+
+  num_arms <- length(prob_treatment) # number of treatment arms + control group
+
+  Y0 <- rnorm(n = sample_size,
+              mean = mean,
+              sd = sd) # assume potential outcome of untreated is normal(0, 1)
+  Y1 <- Y0 + tau
+  Z.sim <- complete_ra(N = sample_size,
+                       prob_each = prob_treatment,
+                       num_arms = num_arms) # returns a N-vector with values T1, T2
+  # construct observed Y value
+  ## assume 'T1' means not treated and 'Tx' means treated (x > 1)
+  Y.sim <- Y0*(Z.sim=="T1") + Y1*(Z.sim=="T2")
+  # data frame with simulated observed Y values and treatment assignment
+  frame.sim <- data.frame(Y.sim, Z.sim)
+  
+  return(frame.sim)
+  
+}
+
 # ----- Run simulations ----- #
 
-sample_number <- 1 # store number of sample-simulation being used to print during running time
+sample_number <- 1 # store number of sample-simulation pair 
+                   # being used to print during running time
 
 # Loop to vary the treatment effects
 for (k in 1:length(taus)){
-  tau_1 = taus[k]
+  tau = taus[k]
 
   ## Loop to vary the sample size
   for (j in 1:length(sample_sizes)){
     N <- sample_sizes[j]
     # vector to save p-values (treatment vs control)
-    p.T1vsC <- rep(NA, sims)
+    p.TvsC <- rep(NA, sims)
     # vector to save coefficients (treatment vs control)
-    c.T1vsC <- rep(NA, sims)
+    c.TvsC <- rep(NA, sims)
     ### Loop to run through all simulations
     for (i in 1:sims){
-      Y0 <-  rnorm(n=N, mean=0, sd=1) # assume potential outcome of untreated is normal(0, 1)
-      Y1 <- Y0 + tau_1
-      Z.sim <- complete_ra(N=N, num_arms=2) # returns a N-vector with values T1, T2
-      # construct observed Y value
-      ## assume 'T2' means not treated and 'T1' means treated
-      Y.sim <- Y0*(Z.sim=="T2") + Y1*(Z.sim=="T1")
-      # data frame with simulated observed Y values and treatment assignment
-      frame.sim <- data.frame(Y.sim, Z.sim)
+      simulated_sample <- create_sample(tau = tau)
       # run OLS regressions of outcomes on treatment dummy
-      fit.T1vsC.sim <- lm(Y.sim ~ Z.sim=="T1", data=frame.sim)
+      fit.TvsC.sim <- lm(Y.sim ~ Z.sim=="T1", data=simulated_sample)
 
-      ### Need to capture coefficients and pvalues (one-tailed tests, so signs are important)
-      c.T1vsC[i] <- summary(fit.T1vsC.sim)$coefficients[2,1]
-      p.T1vsC[i] <- summary(fit.T1vsC.sim)$coefficients[2,4]
+      ### Need to capture coefficients and p-values (one-tailed tests, so signs are important)
+      c.TvsC[i] <- summary(fit.TvsC.sim)$coefficients[2,1]
+      p.TvsC[i] <- summary(fit.TvsC.sim)$coefficients[2,4]
       
     }
     
