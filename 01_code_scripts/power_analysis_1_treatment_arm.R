@@ -13,8 +13,10 @@ library(ggplot2)
 library(data.table)
 library(dplyr)
 
+source('01_code_scripts/plot_function.R')
+
 # Set base path to save graphs
-base_path <- 'C:\\Users\\arthf\\Mestrado_Economia\\Clear\\PIM Program'
+base_path <- 'C:\\Users\\arthf\\Mestrado_Economia\\Clear\\PIM Program\\Power_analysis_simulations_for_RCT'
 
 ############################################
 #### Power Analysis for Multiple Treatments
@@ -22,16 +24,19 @@ base_path <- 'C:\\Users\\arthf\\Mestrado_Economia\\Clear\\PIM Program'
 
 # ----- Define parameters ----- #
 
-min_sample_size <- 100
+min_sample_size <- 1000
 max_sample_size <- 6000
-increment <- 200
+increment <- 1000
 
-sims <- 100   # nº of simulations to run for each treatment effect and each sample size
+sims <- 50   # nº of simulations to run for each treatment effect and each sample size
 
 alpha <- 0.1  # one-tailed test at .05 level
 
 # treatment effects
 taus <- c(0.05, 0.10, 0.15) # these will be the minimum detectable effect (MDE) in our case
+
+# proportion of control and treated units
+prop_control_treat <- c(0.5, 0.5)
 
 # colors for the graph
 colors <- c('#BEBC73', '#95ADA5', '#CBD2BF')
@@ -49,39 +54,9 @@ power <- data.frame(matrix(NA,
                            ncol = length(taus)))
 colnames(power) <- paste0('power_effect', seq(length(taus)))
 
-# ---- Function to plot the graphs ---- #
 
-plot_power_analysis <- function(data) {
-  
-  ggplot(data, aes(x = sample_sizes)) +
-    # plot power for each treatment effect
-    geom_line(aes(y = power_effect1, color = paste0('Effect = ', taus[1])), size = 2) +
-    geom_line(aes(y = power_effect2, color = paste0('Effect = ', taus[2])), size = 2) +
-    geom_line(aes(y = power_effect3, color = paste0('Effect = ', taus[3])), size = 2) +
-    # creates horizontal line at power = 0.8
-    geom_hline(yintercept = 0.8, linetype = "dashed", color = "red", size = 1) +
-    ylim(0, 1) +
-    scale_x_continuous(breaks = seq(0, max(sample_sizes), by = 1000)) +
-    labs(title = paste0("Power Analysis"),
-         x     = "Sample sizes",
-         y     = "Power") +
-    theme_classic() + 
-    scale_color_manual(name   = '',
-                       values = colors,
-                       labels = c(paste0('Effect = ', taus[1]),
-                                  paste0('Effect = ', taus[2]),
-                                  paste0('Effect = ', taus[3]))) +
-    theme(legend.position = 'bottom',
-          legend.title    = element_blank(),
-          legend.text     = element_text(size = 16),
-          plot.title      = element_text(size = 24, hjust = 0.5),
-          axis.title      = element_text(size = 20),
-          axis.text       = element_text(size = 16)) +
-    guides(color = guide_legend(override.aes = list(size = 3)))
-  
-}
 
-create_sample <- function(tau, prob_treatment = c(0.5, 0.5),
+create_sample <- function(tau, prob_treatment = c(0.7, 0.3),
                           sample_size = 100, mean = 0, sd = 1) {
 
   num_arms <- length(prob_treatment) # number of treatment arms + control group
@@ -121,9 +96,11 @@ for (k in 1:length(taus)){
     c.TvsC <- rep(NA, sims)
     ### Loop to run through all simulations
     for (i in 1:sims){
-      simulated_sample <- create_sample(tau = tau)
+      simulated_sample <- create_sample(tau = tau,
+                                        prob_treatment = prop_control_treat,
+                                        sample_size = N)
       # run OLS regressions of outcomes on treatment dummy
-      fit.TvsC.sim <- lm(Y.sim ~ Z.sim=="T1", data=simulated_sample)
+      fit.TvsC.sim <- lm(Y.sim ~ Z.sim=="T2", data=simulated_sample)
 
       ### Need to capture coefficients and p-values (one-tailed tests, so signs are important)
       c.TvsC[i] <- summary(fit.TvsC.sim)$coefficients[2,1]
@@ -132,7 +109,7 @@ for (k in 1:length(taus)){
     }
     
     # store simulations results for a given sample size
-    power[j, k] <- mean(c.T1vsC>0 & p.T1vsC < alpha/2)
+    power[j, k] <- mean(c.TvsC>0 & p.TvsC < alpha/2)
 
     print(paste('Running sample', sample_number, 'from', length(sample_sizes)*length(taus), 'samples'))
     sample_number <- sample_number + 1
@@ -148,14 +125,14 @@ plot_data <- data.frame(
 )
 
 # Save plot_data so don't need to rerun simulations to create the data
-plot_data %>% 
-  fwrite('02_data/data_for_single_treatment_arm.csv')
+# plot_data %>% 
+#   fwrite('02_data/data_for_single_treatment_arm.csv')
 
 # Plot data
 plot <- plot_power_analysis(plot_data)
 
 # Save plot
-ggsave(paste0('03_figures/Power analysis for single treatment.png'),
-       plot = plot,
-       width = 12,
-       height = 8)
+# ggsave(paste0('03_figures/Power analysis for single treatment.png'),
+#        plot = plot,
+#        width = 12,
+#        height = 8)
