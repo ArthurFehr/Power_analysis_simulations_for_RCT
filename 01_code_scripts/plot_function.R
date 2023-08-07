@@ -5,9 +5,9 @@ plot_power_analysis <- function(data) {
   
   ggplot(data, aes(x = sample_sizes)) +
     # plot power for each treatment effect
-    geom_line(aes(y = power_effect1, color = paste0('Effect = ', taus[1])), size = 2) +
-    geom_line(aes(y = power_effect2, color = paste0('Effect = ', taus[2])), size = 2) +
-    geom_line(aes(y = power_effect3, color = paste0('Effect = ', taus[3])), size = 2) +
+    geom_line(aes(y = power_effect1, color = paste0('Effect = ', taus[1])), linewidth = 2) +
+    geom_line(aes(y = power_effect2, color = paste0('Effect = ', taus[2])), linewidth = 2) +
+    geom_line(aes(y = power_effect3, color = paste0('Effect = ', taus[3])), linewidth = 2) +
     # creates horizontal line at power = 0.8
     geom_hline(yintercept = 0.8, linetype = "dashed", color = "red", size = 1) +
     ylim(0, 1) +
