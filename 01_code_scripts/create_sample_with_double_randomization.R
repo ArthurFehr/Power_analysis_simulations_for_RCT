@@ -1,57 +1,110 @@
 
-create_sample_double_randomization <- function(treatment_effects = c(0.1, 0.2),
+create_sample_double_randomization <- function(treatment_effects = c(0.1),
                                                n_stratas = 10,
-                                               proportion_strata_in_treatment_one = 0.1,
+                                               proportion_strata_in_treatment_one = 0.5,
                                                n_treatments = 2,
                                                prob_treatment = 0.5, 
-                                               observations_per_strata = rep(10, n_stratas), 
-                                               mean = 0, sd = 1) {
+                                               observations_per_strata = 
+                                                 sample(c(40, 60, 80, 100, 120),
+                                                        size = n_stratas,
+                                                        replace = TRUE,
+                                                        prob = c(0.6, 0.2, 0.1, 0.06, 0.04)), 
+                                               mean = 0, sd = 1, ICC = 0) {
   
-  strata <- seq(n_stratas)
-  treatment_group = randomizr::complete_ra(N = n_stratas,
-                                           prob = 1 - proportion_strata_in_treatment_one) + 1
-  group_assignment <- data.frame(strata = 
-                                   rep(strata,
-                                     times = observations_per_strata),
-                                 treatment_group =
-                                   rep(treatment_group,
-                                     times = observations_per_strata))
-  potential_outcomes <- data.frame()
+  strata <- data.table(strata_number = seq(n_stratas),
+                       strata_observations = observations_per_strata)
+  quantiles <- quantile(strata$strata_observations, probs = c(0.5))
+  strata$quantile <- ifelse(strata$strata_observations <= quantiles, 1, 2)
   
-  for (i in seq(n_treatments)) {
+  # Generate treatment group assignments
+  strata[, treatment_group := randomizr::complete_ra(N = .N, prob = 0.5) + 1, 
+         by = quantile]
+  
+  df_expanded <- data.table(
+    strata_number = rep(seq(n_stratas),
+                        times = observations_per_strata)
+  )
+  
+  df_expanded <- merge(df_expanded, 
+                       strata, by = "strata_number")
+  
+  df_expanded <- df_expanded[, by = .(treatment_group, strata_number),
+                             treatment := randomizr::complete_ra(N = nrow(.SD),
+                                                                 prob = prob_treatment)]
+  
+  if (ICC == 0) {
     
-    data <- subset(group_assignment,
-                   subset = treatment_group == i)
+    Y0_outcomes <- rnorm(n = nrow(df_expanded),
+                         mean = mean,
+                         sd = sd)
     
-    for (j in unique(data$strata)) {
-      
-      data_strata <- subset(data,
-                         subset = strata == j)
-      
-      data_strata[, 'treatment'] = randomizr::complete_ra(N = nrow(data_strata),
-                                                          prob = prob_treatment)
-      
-      data_strata[, 'Y'] = 
-        # Create Y0
-        rnorm(n = nrow(data_strata),
-              mean = mean,
-              sd = sd) +
-        # Add treatment effect if unit is assigned to treatment
-        data_strata[, 'treatment'] * rep(treatment_effects[i],
-                                  nrow(data_strata))
-      
-      potential_outcomes <- rbind(potential_outcomes,
-                                  data_strata)
-      
-    }
+  } else if (ICC == 1) {
     
+    Y0_outcomes <- fabricatr::fabricate(
+      N = nrow(df_expanded),
+      strata_id = df_expanded$strata_number,
+      Y0 = draw_normal_icc(clusters = strata_id, sd = 0, sd_between = 1)
+    )$Y0
+    
+  } else {
+    
+  Y0_outcomes <- fabricatr::fabricate(
+    N = nrow(df_expanded),
+    strata_id = df_expanded$strata_number,
+    Y0 = draw_normal_icc(clusters = strata_id, ICC = ICC)
+  )$Y0
+  
   }
   
-  potential_outcomes <- potential_outcomes[order(potential_outcomes$treatment_group,
-                                                 potential_outcomes$strata), ]
+  df_expanded$Y0 <- Y0_outcomes
   
-  return(potential_outcomes)
+  return(df_expanded)
   
 }
 
+# create_sample_double_randomization <- function(treatment_effects = c(0.1),
+#                                                n_stratas = 10,
+#                                                proportion_strata_in_treatment_one = 0.5,
+#                                                n_treatments = 2,
+#                                                prob_treatment = 0.5,
+#                                                observations_per_strata = 
+#                                                  sample(c(40, 60, 80, 100, 120),
+#                                                         size = n_stratas,
+#                                                         replace = TRUE,
+#                                                         prob = c(0.6, 0.2, 0.1, 0.06, 0.04)),
+#                                                mean = 0, sd = 1) {
+#   
+#   # Generate strata information
+#   strata <- data.frame(strata_number = seq(n_stratas),
+#                        strata_observations = observations_per_strata)
+#   quantiles <- quantile(strata$strata_observations, probs = c(0.5))
+#   strata$quantile <- ifelse(strata$strata_observations <= quantiles, 1, 2)
+#   
+#   # Generate treatment group assignments
+#   df_group_assignment <- data.table(strata_number = strata$strata_number)
+#   df_group_assignment[, treatment_group := randomizr::complete_ra(N = .N, prob = 0.5) + 1, by = strata_number]
+#   
+#   # Expand the data
+#   df_expanded <- merge(strata, df_group_assignment, by = "strata_number")
+#   
+#   # Simulate the sample
+#   simulated_sample <- data.table()
+#   
+#   for (i in 1:n_treatments) {
+#     data <- df_expanded[treatment_group == i]
+#     
+#     for (j in unique(data$strata_number)) {
+#       data_strata <- data[strata_number == j]
+#       
+#       data_strata[, treatment := randomizr::complete_ra(N = .N, prob = prob_treatment)]
+#       data_strata[, Y0 := rnorm(.N, mean = mean, sd = sd)]
+#       
+#       simulated_sample <- rbind(simulated_sample, data_strata)
+#     }
+#   }
+#   
+#   simulated_sample <- simulated_sample[order(strata_number)]
+#   
+#   return(simulated_sample)
+# }
 

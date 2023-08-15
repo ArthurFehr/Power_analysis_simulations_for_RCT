@@ -51,7 +51,7 @@ power <- data.frame(
   atleastone = rep(NA, length(sample_sizes)*length(taus_1)),
   bothtreatments = rep(NA, length(sample_sizes)*length(taus_1)),
   fullranking = rep(NA, length(sample_sizes)*length(taus_1)),
-  effects = c(rep(paste0('MDE1 = ', taus_1[1], ', MDE2 = ', taus_2[1]), length(sample_sizes)),
+  effect = c(rep(paste0('MDE1 = ', taus_1[1], ', MDE2 = ', taus_2[1]), length(sample_sizes)),
               rep(paste0('MDE1 = ', taus_1[2], ', MDE2 = ', taus_2[2]), length(sample_sizes)),
               rep(paste0('MDE1 = ', taus_1[3], ', MDE2 = ', taus_2[3]), length(sample_sizes)))
 )
