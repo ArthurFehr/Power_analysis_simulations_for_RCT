@@ -9,7 +9,7 @@ create_sample_double_randomization <- function(treatment_effects = c(0.1),
                                                         size = n_stratas,
                                                         replace = TRUE,
                                                         prob = c(0.6, 0.2, 0.1, 0.06, 0.04)), 
-                                               mean = 0, sd = 1, ICC = 0) {
+                                               mean = 0, sd = 1, icc = 0) {
   
   strata <- data.table(strata_number = seq(n_stratas),
                        strata_observations = observations_per_strata)
@@ -32,13 +32,13 @@ create_sample_double_randomization <- function(treatment_effects = c(0.1),
                              treatment := randomizr::complete_ra(N = nrow(.SD),
                                                                  prob = prob_treatment)]
   
-  if (ICC == 0) {
+  if (icc == 0) {
     
     Y0_outcomes <- rnorm(n = nrow(df_expanded),
                          mean = mean,
                          sd = sd)
     
-  } else if (ICC == 1) {
+  } else if (icc == 1) {
 
     Y0_outcomes <- fabricatr::fabricate(
       N = nrow(df_expanded),
@@ -48,7 +48,7 @@ create_sample_double_randomization <- function(treatment_effects = c(0.1),
     
   } else {
     
-    sd_between = sqrt((ICC * sd^2) / (1 - ICC))
+    sd_between = sqrt((icc * sd^2) / (1 - icc))
     
     Y0_outcomes <- fabricatr::fabricate(
       N = nrow(df_expanded),
