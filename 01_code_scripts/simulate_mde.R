@@ -24,24 +24,14 @@ library(foreach)
 library(doParallel)
 
 source('01_code_scripts/create_sample_with_double_randomization.R')
-
-# 
-num_cores <- 4
-cl <- makeCluster(num_cores)
+source('01_code_scripts/calculate_power.R')
+source('01_code_scripts/calculate_mdes.R')
 
 # ----- Define parameters ----- #
 
 # number of stratas (municipalities)
-n_stratas = seq(100, 210, 20)
 n_stratas = 210
 # observations in each strata
-observations_per_strata <- 
-  lapply(n_stratas, function(x) {
-    sample(c(40, 60, 80, 100, 120),
-           size = x,
-           replace = TRUE,
-           prob = c(0.85, 0.1, 0.03, 0.01, 0.01))
-  })
 observations_per_strata <- 
   c(rep(40, 182),
     rep(50, 5),
@@ -60,107 +50,44 @@ alpha <- 0.1
 min_effect <- 0
 max_effect <- 3
 epsilon <- 0.01
-simulations <- 1000
+simulations <- 300
 icc <- seq(0, 1, 0.2)
-
-# --- Intermediary functions --- #
-
-# Function for power calculation
-calculate_power <- function(dt, mean_effect,
-                            alpha = 0.1,
-                            simulations = 100,
-                            power_level = 0.8,
-                            epsilon = 0.01) {
-
-  power_list <- vector(mode = 'logical', length = simulations)
-  obs_list <- vector(mode = 'numeric', length = simulations)
-
-  for (j in seq(simulations)) {
-
-    dt <- create_sample_double_randomization(
-      n_stratas = n_stratas,
-      observations_per_strata = unlist(observations_per_strata),
-      ICC = icc[i]
-    )
-
-    dt <- dt[treatment == 1]
-    dt <- dt[treatment_group == 1, treatment := 0]
-
-    dt[, Y := Y0 + treatment * mean_effect]
-
-    model <- fixest::feols(Y ~ treatment,
-                           cluster = ~strata_number,
-                   data = dt, lean = TRUE)
-
-    power_list[j] <- model$coeftable[2, 4] < alpha / 2
-    obs_list[j] <- nrow(dt)
-
-  }
-
-  obs <- mean(obs_list)
-  power <- mean(power_list)
-
-  return(list(power = power, obs = obs))
-
-}
 
 # ------ Run simulations ------ #
 
 # Preallocate the result data.table
 df_mde <- data.table(icc = rep(icc, times = length(n_stratas)),
                      n_strata = rep(n_stratas, each = length(icc)),
-                     mde = numeric(length(n_stratas)), 
-                     observations = numeric(length(n_stratas)))
+                     mde_results = numeric(length(n_stratas)))
 
-time0 <- Sys.time()
-registerDoParallel(cl)
+df_mde[, c('mde_results') := lapply(icc,
+                            function(x) {
+                              run_mdes(n_stratas,
+                                       observations_per_strata,
+                                       min_effect,
+                                       max_effect,
+                                       simulations,
+                                       epsilon,
+                                       alpha,
+                                       power_level,
+                                       icc = x) }
+                            )]
 
-results <- foreach(i = seq_along(icc),
-                   .combine = rbind) %dopar% {
-                     
-                     library(data.table)
-                     library(fabricatr)
-                     
-                     power <- 0
-                     
-                     while (abs(power - power_level) > epsilon) {
-                       
-                       mean_effect <- (min_effect + max_effect) / 2
-                       
-                       result <- calculate_power(dt, mean_effect, alpha,
-                                                 simulations, power_level,
-                                                 epsilon)
-                       
-                       power <- result$power
-                       obs <- result$obs
-                       
-                       if (power < power_level - epsilon) {
-                         min_effect <- mean_effect
-                       } else {
-                         max_effect <- mean_effect
-                       }
-                       
-                     }
-                     
-                     return(list(
-                       icc = icc[i],
-                       mean_effect = mean_effect,
-                       obs = obs
-                     ))
-                     
-                   }
+df_mde[, c('mde', 'obs') := .(sapply(mde_results, function(x) x$mean_effect),
+                                 sapply(mde_results, function(x) x$obs))]
 
-time1 <- Sys.time()
-print(time1 - time0)
+# ----- Plot graph ----- #
 
-stopCluster(cl)
-registerDoSEQ()
+df_mde %>% 
+  ggplot(aes(x = icc, y = mde)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) + 
+  geom_text(aes(label = round(mde, 2), vjust = -0.5)) +
+  theme_classic() +
+  xlab('ICC') +
+  ylab('MDE') +
+  ggtitle('MDE for 2 treatments (PIM 2 x PIM 1)') +
+  scale_y_continuous(breaks = seq(0, 1, 0.1), limits = c(0,1))
 
-for (i in seq_along(icc)) {
-  
-  df_mde[i, c('mde', 'observations')] <- 
-    unlist(results[i][c('mean_effect', 'obs')])
-  
-}
-
+ggsave('./03_figures/mde_2_treatments_comparisons.png')
 
