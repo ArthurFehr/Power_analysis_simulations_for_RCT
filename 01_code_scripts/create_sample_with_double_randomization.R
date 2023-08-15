@@ -39,7 +39,7 @@ create_sample_double_randomization <- function(treatment_effects = c(0.1),
                          sd = sd)
     
   } else if (ICC == 1) {
-    
+
     Y0_outcomes <- fabricatr::fabricate(
       N = nrow(df_expanded),
       strata_id = df_expanded$strata_number,
@@ -48,12 +48,14 @@ create_sample_double_randomization <- function(treatment_effects = c(0.1),
     
   } else {
     
-  Y0_outcomes <- fabricatr::fabricate(
-    N = nrow(df_expanded),
-    strata_id = df_expanded$strata_number,
-    Y0 = draw_normal_icc(clusters = strata_id, ICC = ICC)
-  )$Y0
-  
+    sd_between = sqrt((ICC * sd^2) / (1 - ICC))
+    
+    Y0_outcomes <- fabricatr::fabricate(
+      N = nrow(df_expanded),
+      strata_id = df_expanded$strata_number,
+      Y0 = draw_normal_icc(clusters = strata_id, sd = sd, sd_between = sd_between)
+    )$Y0
+    
   }
   
   df_expanded$Y0 <- Y0_outcomes

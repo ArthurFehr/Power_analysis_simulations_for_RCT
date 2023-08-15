@@ -61,7 +61,7 @@ min_effect <- 0
 max_effect <- 3
 epsilon <- 0.01
 simulations <- 1000
-icc <- seq(1, 1, 0.3)
+icc <- seq(0, 1, 0.2)
 
 # --- Intermediary functions --- #
 
