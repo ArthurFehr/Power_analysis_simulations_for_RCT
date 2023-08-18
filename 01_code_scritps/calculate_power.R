@@ -1,32 +1,22 @@
 
-dsfgtd
-
-# Function for power calculation
-calculate_power <- function(mean_effect,
-                            alpha = 0.1,
-                            simulations = 100,
-                            power_level = 0.8,
-                            epsilon = 0.01,
-                            icc = 1) {
+# Function to run regression and check if null is reject or not
+run_regression <- function(data,
+                           formula,
+                           cluster = NULL,
+                           alpha = 0.1) {
   
-  dt <- create_sample_double_randomization(
-    n_stratas = n_stratas,
-    observations_per_strata = unlist(observations_per_strata),
-    icc = icc
-  )
+  model <- fixest::feols(as.formula(formula),
+                         data = dt, 
+                         cluster = cluster,
+                         lean = TRUE)
   
-  dt <- dt[treatment == 1]
-  dt <- dt[treatment_group == 1, treatment := 0]
+  reject <- model$coeftable[2, 4] < alpha / 2
   
-  dt[, Y := Y0 + treatment * mean_effect]
-  
-  model <- fixest::feols(Y ~ treatment,
-                         cluster = ~strata_number,
-                         data = dt, lean = TRUE)
-  
-  obs <- nrow(dt)
-  power <- model$coeftable[2, 4] < alpha / 2
-  
-  return(list(power = power, obs = obs))
+  return(reject)
   
 }
+
+dt <- data.table(
+  Y = rnorm(100, 0, 2),
+  t = c(rep(0, 50), rep(1, 50))
+)
