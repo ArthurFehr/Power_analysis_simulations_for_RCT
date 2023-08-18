@@ -1,4 +1,5 @@
 
+dsfgtd
 
 # Function for power calculation
 calculate_power <- function(mean_effect,
