@@ -6,7 +6,7 @@ calculate_power <- function(mean_effect,
                             simulations = 100,
                             power_level = 0.8,
                             epsilon = 0.01,
-                            icc = 0) {
+                            icc = 1) {
   
   dt <- create_sample_double_randomization(
     n_stratas = n_stratas,

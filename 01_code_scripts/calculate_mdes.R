@@ -9,7 +9,7 @@ run_mdes <- function(n_stratas,
                      power_level,
                      icc) {
   
-  power <- 0
+  power <- 0 
   
   while (abs(power - power_level) > epsilon) {
     
