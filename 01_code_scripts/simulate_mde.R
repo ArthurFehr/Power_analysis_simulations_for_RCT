@@ -105,13 +105,13 @@ df_mde1[, ('mde_results') := lapply(icc,
 df_mde1[, c('mde', 'obs') := .(sapply(mde_results, function(x) x$mean_effect),
                                  sapply(mde_results, function(x) x$obs))]
 
-df_mde1 <- data.table(
-  icc = icc,
-  mde = c(0.08026123, 0.08300781, 0.10986328, 0.14404297,
-          0.17822266, 0.23437500, 0.26489258, 0.31250000,
-          0.37109375, 0.40039062, 0.43457031),
-  obs = 4950
-)
+# df_mde1 <- data.table(
+#   icc = icc,
+#   mde = c(0.08026123, 0.08300781, 0.10986328, 0.14404297,
+#           0.17822266, 0.23437500, 0.26489258, 0.31250000,
+#           0.37109375, 0.40039062, 0.43457031),
+#   obs = 4950
+# )
 
 n_stratas <- c(unlist(total_stratas[2]))
 observations_per_strata <- c(unlist(total_observations[2]))
@@ -136,13 +136,13 @@ df_mde2[, c('mde_results') := lapply(icc,
 df_mde2[, c('mde', 'obs') := .(sapply(mde_results, function(x) x$mean_effect),
                                sapply(mde_results, function(x) x$obs))]
 
-df_mde2 <- data.table(
-  icc = icc,
-  mde = c(0.1113281, 0.1170959, 0.1552734, 0.2109375, 0.2578125,
-          0.3046875, 0.3691406, 0.4335938, 0.5009766, 0.5651093,
-          0.6049805),
-  obs = 2475
-)
+# df_mde2 <- data.table(
+#   icc = icc,
+#   mde = c(0.1113281, 0.1170959, 0.1552734, 0.2109375, 0.2578125,
+#           0.3046875, 0.3691406, 0.4335938, 0.5009766, 0.5651093,
+#           0.6049805),
+#   obs = 2475
+# )
 
 n_stratas <- c(unlist(total_stratas[3]))
 observations_per_strata <- c(unlist(total_observations[3]))
@@ -167,13 +167,13 @@ df_mde3[, c('mde_results') := lapply(icc,
 df_mde3[, c('mde', 'obs') := .(sapply(mde_results, function(x) x$mean_effect),
                                sapply(mde_results, function(x) x$obs))]
 
-df_mde3 <- data.table(
-  icc = icc,
-  mde = c(0.1816406, 0.1875000, 0.2460938, 0.3046875,
-          0.3984375, 0.4687271, 0.5806732, 0.6796875,
-          0.7500000, 0.8437500, 0.9256868),
-  obs = 975
-)
+# df_mde3 <- data.table(
+#   icc = icc,
+#   mde = c(0.1816406, 0.1875000, 0.2460938, 0.3046875,
+#           0.3984375, 0.4687271, 0.5806732, 0.6796875,
+#           0.7500000, 0.8437500, 0.9256868),
+#   obs = 975
+# )
 
 # ----- Plot graph ----- #
 

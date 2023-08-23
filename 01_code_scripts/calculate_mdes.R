@@ -1,13 +1,13 @@
 
-run_mdes <- function(n_stratas,
-                     observations_per_strata,
+run_mdes <- function(observations,
+                     # n_stratas,
+                     # observations_per_strata,
                      min_effect,
                      max_effect,
                      simulations,
                      epsilon,
                      alpha,
-                     power_level,
-                     icc) {
+                     power_level) {
   
   power <- 0 
   
@@ -15,29 +15,17 @@ run_mdes <- function(n_stratas,
     
     mean_effect <- (min_effect + max_effect) / 2
     
-    power_list <- vector(mode = 'logical', length = simulations)
-    obs_list <- vector(mode = 'numeric', length = simulations)
+    results <- calculate_power(mean_effect = 0.1,
+                               alpha = 0.1,
+                               simulations = 100,
+                               power_level = 0.8,
+                               epsilon = 0.01,
+                               # icc = 1,
+                               # n_stratas = n_stratas,
+                               # obs_per_strata = observations_per_strata,
+                               observations = 100)
     
-    results <- data.table(
-      simulation_results = rep(NA, simulations),
-      power = rep(NA, simulations),
-      obs = rep(NA, simulations)
-    )
-    
-    results[, c('simulation_results') := lapply(1:simulations,
-                                                calculate_power,
-                                                mean_effect = mean_effect,
-                                                alpha = alpha,
-                                                power_level = power_level,
-                                                epsilon = epsilon,
-                                                icc = icc)]
-    
-    results[, c('power', 'obs') := .(sapply(simulation_results, function(x) x$power),
-                                     sapply(simulation_results, function(x) x$obs))]
-    
-    
-    obs <- mean(results$obs)
-    power <- mean(results$power)
+    power <- results$power
     
     if (power < power_level - epsilon) {
       min_effect <- mean_effect
@@ -50,6 +38,6 @@ run_mdes <- function(n_stratas,
   }
   
   return(list(mean_effect = mean_effect, 
-              obs = obs))
+              obs = results$obs))
   
 }
